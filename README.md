@@ -55,3 +55,71 @@ python3 scripts/train_court_detector.py \
 ```
 
 The best checkpoint is saved under `runs/pickleball_court/<run_name>/weights/best.pt`.
+
+## 4) Railway monitor + local training (Supabase bridge)
+
+Use local training for GPU/CPU work, and host only the monitor web app on Railway.
+
+### Supabase table setup
+
+Run this SQL in your Supabase SQL editor:
+
+```sql
+create table if not exists public.training_status (
+  run_id text primary key,
+  state text not null default 'running',
+  epoch integer not null default 0,
+  epochs integer not null default 0,
+  batch integer not null default 0,
+  batches_per_epoch integer not null default 0,
+  epoch_progress double precision not null default 0,
+  overall_progress double precision not null default 0,
+  elapsed_seconds double precision not null default 0,
+  save_dir text not null default '',
+  updated_at_unix double precision not null default 0
+);
+
+alter table public.training_status enable row level security;
+
+drop policy if exists "public read training_status" on public.training_status;
+drop policy if exists "public insert training_status" on public.training_status;
+drop policy if exists "public update training_status" on public.training_status;
+
+create policy "public read training_status"
+on public.training_status for select to anon using (true);
+
+create policy "public insert training_status"
+on public.training_status for insert to anon with check (true);
+
+create policy "public update training_status"
+on public.training_status for update to anon using (true) with check (true);
+```
+
+### Local training with status upload
+
+```bash
+python3 scripts/train_court_detector.py \
+  --data data/datasets/roboflow/data.yaml \
+  --supabase-url "https://YOUR_PROJECT.supabase.co" \
+  --supabase-key "YOUR_PUBLISHABLE_OR_ANON_KEY"
+```
+
+### Monitor app
+
+Local run:
+
+```bash
+streamlit run training_monitor_app.py
+```
+
+Railway run command:
+
+```bash
+streamlit run training_monitor_app.py --server.address 0.0.0.0 --server.port $PORT
+```
+
+Railway environment variables:
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `SUPABASE_TABLE` (optional, default: `training_status`)
+- `RUN_ID` (optional filter for a single active run)

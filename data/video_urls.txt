@@ -1,0 +1,10 @@
+# Pickleball championship / game videos for frame extraction
+# You can also add:
+# - local file paths (e.g. /Users/you/Videos/pickleball1.mp4)
+# - direct video URLs ending in .mp4/.mov/.mkv/.avi/.webm
+https://www.youtube.com/watch?v=pthJ1IQPqGE
+https://www.youtube.com/watch?v=L6vVMQ-7abM
+https://www.youtube.com/watch?v=wNFDwWVoajQ
+https://www.youtube.com/watch?v=bJ6QApCX5q0
+https://www.youtube.com/watch?v=z9rwMGL08fM
+https://www.youtube.com/watch?v=k324fxhqSAc

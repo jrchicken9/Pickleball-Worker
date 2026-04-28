@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Training artifacts
+runs/
+
+# Large downloadable export (keep extracted dataset instead)
+data/datasets/roboflow/

@@ -1,0 +1,8 @@
+opencv-python
+ultralytics
+streamlit
+numpy
+requests
+duckduckgo-search
+Pillow
+yt-dlp

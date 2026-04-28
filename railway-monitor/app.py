@@ -36,12 +36,12 @@ st.set_page_config(page_title="Court Training Monitor", layout="centered")
 st.title("Court Training Monitor")
 st.caption("Railway monitor for local training status via Supabase (multi-run board).")
 
-refresh_sec = st.sidebar.slider("Auto-refresh (seconds)", min_value=2, max_value=30, value=5)
-active_window_min = st.sidebar.slider("Active window (minutes)", min_value=1, max_value=60, value=10)
-supabase_url = st.sidebar.text_input("SUPABASE_URL", value=os.getenv("SUPABASE_URL", ""))
-supabase_key = st.sidebar.text_input("SUPABASE_KEY", value=os.getenv("SUPABASE_KEY", ""), type="password")
-supabase_table = st.sidebar.text_input("SUPABASE_TABLE", value=os.getenv("SUPABASE_TABLE", "training_status"))
-run_id = st.sidebar.text_input("RUN_ID (optional)", value=os.getenv("RUN_ID", ""))
+refresh_sec = int(os.getenv("MONITOR_REFRESH_SEC", "5"))
+active_window_min = int(os.getenv("MONITOR_ACTIVE_WINDOW_MIN", "10"))
+supabase_url = os.getenv("SUPABASE_URL", "")
+supabase_key = os.getenv("SUPABASE_KEY", "")
+supabase_table = os.getenv("SUPABASE_TABLE", "training_status")
+run_id = os.getenv("RUN_ID", "")
 
 st_autorefresh(interval=refresh_sec * 1000, key="monitor_refresh")
 
@@ -62,18 +62,15 @@ else:
             cutoff = now - (active_window_min * 60)
 
             active: list[dict] = []
-            inactive: list[dict] = []
             for row in statuses:
                 updated = float(row.get("updated_at_unix", 0.0))
                 state = str(row.get("state", "unknown")).lower()
                 if state == "running" or updated >= cutoff:
                     active.append(row)
-                else:
-                    inactive.append(row)
 
             st.subheader("Active Training Runs")
             if not active:
-                st.info("No active runs in the selected time window.")
+                st.info("No active runs right now.")
             else:
                 st.caption(f"Showing {len(active)} active runs.")
                 for row in active:
@@ -89,18 +86,6 @@ else:
                     st.progress(max(0.0, min(overall, 1.0)), text=f"Overall {overall*100:.1f}%")
                     st.progress(max(0.0, min(epoch_prog, 1.0)), text=f"Current epoch {epoch_prog*100:.1f}%")
                     st.divider()
-
-            with st.expander("Recent Inactive Runs", expanded=False):
-                if not inactive:
-                    st.caption("No inactive runs found.")
-                else:
-                    for row in inactive[:20]:
-                        rid = str(row.get("run_id", "unknown"))
-                        state = str(row.get("state", "unknown"))
-                        epoch = int(row.get("epoch", 0))
-                        epochs = max(1, int(row.get("epochs", 1)))
-                        overall = float(row.get("overall_progress", 0.0))
-                        st.write(f"- `{rid}` | {state} | epoch {epoch}/{epochs} | overall {overall*100:.1f}%")
     except Exception as exc:
         st.error(f"Supabase read failed: {exc}")
 

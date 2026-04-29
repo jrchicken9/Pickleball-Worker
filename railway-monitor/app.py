@@ -37,7 +37,7 @@ st.title("Court Training Monitor")
 st.caption("Railway monitor for local training status via Supabase (multi-run board).")
 
 refresh_sec = int(os.getenv("MONITOR_REFRESH_SEC", "5"))
-active_window_min = int(os.getenv("MONITOR_ACTIVE_WINDOW_MIN", "10"))
+active_window_min = int(os.getenv("MONITOR_ACTIVE_WINDOW_MIN", "3"))
 supabase_url = os.getenv("SUPABASE_URL", "")
 supabase_key = os.getenv("SUPABASE_KEY", "")
 supabase_table = os.getenv("SUPABASE_TABLE", "training_status")
@@ -64,8 +64,9 @@ else:
             active: list[dict] = []
             for row in statuses:
                 updated = float(row.get("updated_at_unix", 0.0))
-                state = str(row.get("state", "unknown")).lower()
-                if state == "running" or updated >= cutoff:
+                # Consider a run "active" only if we've received an update within the last N minutes.
+                # This prevents stale rows from lingering if the trainer stops uploading.
+                if updated >= cutoff:
                     active.append(row)
 
             st.subheader("Active Training Runs")

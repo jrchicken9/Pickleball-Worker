@@ -6,6 +6,11 @@ from pathlib import Path
 import requests
 import streamlit as st
 
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:  # pragma: no cover
+    st_autorefresh = None
+
 
 RUNS_ROOT = Path("runs")
 
@@ -165,7 +170,10 @@ else:
             m3.metric("metrics/mAP50(B)", f"{float(latest.get('metrics/mAP50(B)', 0.0)):.4f}")
 
 st.caption(f"Auto-refreshing every {refresh_sec}s")
-st.markdown(
-    f"<meta http-equiv='refresh' content='{refresh_sec}'>",
-    unsafe_allow_html=True,
-)
+if st_autorefresh is not None:
+    st_autorefresh(interval=refresh_sec * 1000, key="training_monitor_refresh")
+else:
+    st.markdown(
+        f"<meta http-equiv='refresh' content='{refresh_sec}'>",
+        unsafe_allow_html=True,
+    )

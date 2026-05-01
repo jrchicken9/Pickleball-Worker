@@ -335,19 +335,20 @@ class TrainingProgress:
         self.epoch_started = self.started
         self.progress_every = max(1, progress_every)
         self.last_batch_ts = self.started
+        # Ultralytics BaseTrainer does not set batch_i; track batches per epoch ourselves.
+        self.batches_done_this_epoch = 0
 
     def on_epoch_start(self, trainer) -> None:
         self.epoch_started = time.time()
         self.last_batch_ts = self.epoch_started
+        self.batches_done_this_epoch = 0
 
     def on_batch_end(self, trainer) -> None:
-        batch_i = int(getattr(trainer, "batch_i", -1))
-        if batch_i < 0:
-            return
         total_batches = len(getattr(trainer, "train_loader", []))
         if total_batches <= 0:
             return
-        current = batch_i + 1
+        self.batches_done_this_epoch += 1
+        current = self.batches_done_this_epoch
         if current % self.progress_every != 0 and current != total_batches:
             return
 
@@ -419,11 +420,12 @@ def main() -> None:
         status_writer.write(trainer, payload)
         uploader.upload(payload, force=True)
 
-    def on_batch_end(trainer) -> None:
+    def on_train_batch_end(trainer) -> None:
+        progress.on_batch_end(trainer)
         epoch_idx = int(getattr(trainer, "epoch", 0))
         epochs = int(getattr(trainer, "epochs", 1))
         total_batches = max(1, len(getattr(trainer, "train_loader", [])))
-        batch = int(getattr(trainer, "batch_i", -1)) + 1
+        batch = progress.batches_done_this_epoch
         epoch_progress = min(max(batch / total_batches, 0.0), 1.0)
         overall = (epoch_idx + epoch_progress) / max(epochs, 1)
         payload = status_writer.build_payload(
@@ -475,8 +477,7 @@ def main() -> None:
 
     model.add_callback("on_train_start", on_train_start)
     model.add_callback("on_train_epoch_start", progress.on_epoch_start)
-    model.add_callback("on_train_batch_end", on_batch_end)
-    model.add_callback("on_train_batch_end", progress.on_batch_end)
+    model.add_callback("on_train_batch_end", on_train_batch_end)
     model.add_callback("on_train_epoch_end", on_epoch_end)
     model.add_callback("on_train_epoch_end", progress.on_epoch_end)
     model.add_callback("on_train_end", on_train_end)
